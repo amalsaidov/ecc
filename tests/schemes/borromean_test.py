@@ -240,6 +240,30 @@ def test_borromean_sig_refuses_no_rings() -> None:
         BorromeanSig.parse((0).to_bytes(32, "big"))
 
 
+def test_parse_refuses_rsizes_that_are_no_iterable_of_ints() -> None:
+    """Issue btclib-org/ecc#515: a wrong-typed `rsizes` is an `EccTypeError`.
+
+    `rsizes` is `parse`'s own extra argument, so a value of a type it
+    does not declare is refused as `tests/serialization_boundary_test.py`
+    requires -- not left to `enumerate` and `range`, which raise a builtin
+    `TypeError` an `except EccException` misses. A `bool` ring size is one
+    of those: `range(True)` reads it as the ring size one and would build
+    a one-member ring from it, so `is_integer` refuses it by name.
+    """
+    e0 = (0).to_bytes(32, "big")
+
+    # no iterable at all: `enumerate(rsizes)` is where this would surface
+    for not_iterable in (None, 3):
+        with pytest.raises(EccTypeError, match="rsizes must be an iterable of ints"):
+            BorromeanSig.parse(e0, not_iterable)  # type: ignore[arg-type]
+
+    # an item that is no int: `range(rsize)` is where this would surface,
+    # the ring named, a `bool` among them
+    for ring_sizes, kind in (([True], "bool"), (["a"], "str"), ([1.0], "float")):
+        with pytest.raises(EccTypeError, match=rf"rsizes\[0\] must be int, not {kind}"):
+            BorromeanSig.parse(e0, ring_sizes)  # type: ignore[arg-type]
+
+
 def test_challenge_hash_matches_zkps_preimage_order() -> None:
     """`_hash`'s preimage order, pinned against secp256k1-zkp's by hand.
 
