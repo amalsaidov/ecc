@@ -241,26 +241,23 @@ def test_borromean_sig_refuses_no_rings() -> None:
 
 
 def test_parse_refuses_rsizes_that_are_no_iterable_of_ints() -> None:
-    """Issue btclib-org/ecc#515: a wrong-typed `rsizes` is an `EccTypeError`.
-
-    `rsizes` is `parse`'s own extra argument, so a value of a type it
-    does not declare is refused as `tests/serialization_boundary_test.py`
-    requires -- not left to `enumerate` and `range`, which raise a builtin
-    `TypeError` an `except EccException` misses. A `bool` ring size is one
-    of those: `range(True)` reads it as the ring size one and would build
-    a one-member ring from it, so `is_integer` refuses it by name.
-    """
+    """Issue btclib-org/ecc#515: a wrong-typed `rsizes` is an `EccTypeError`."""
     e0 = (0).to_bytes(32, "big")
 
-    # no iterable at all: `enumerate(rsizes)` is where this would surface
+    # no iterable at all
     for not_iterable in (None, 3):
         with pytest.raises(EccTypeError, match="rsizes must be an iterable of ints"):
             BorromeanSig.parse(e0, not_iterable)  # type: ignore[arg-type]
 
-    # an item that is no int: `range(rsize)` is where this would surface,
-    # the ring named, a `bool` among them
-    for ring_sizes, kind in (([True], "bool"), (["a"], "str"), ([1.0], "float")):
-        with pytest.raises(EccTypeError, match=rf"rsizes\[0\] must be int, not {kind}"):
+    # an item that is no int, in the first ring and in a later one
+    for ring_sizes, index, kind in (
+        ([True], 0, "bool"),
+        (["a"], 0, "str"),
+        ([1.0], 0, "float"),
+        ([1, True], 1, "bool"),
+    ):
+        match = rf"rsizes\[{index}\] must be int, not {kind}"
+        with pytest.raises(EccTypeError, match=match):
             BorromeanSig.parse(e0, ring_sizes)  # type: ignore[arg-type]
 
 

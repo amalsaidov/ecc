@@ -250,8 +250,8 @@ def _rsizes_from(rsizes: object) -> tuple[int, ...]:
 
     Asked before `BorromeanSig.parse` reads a scalar: a non-iterable `rsizes`
     would raise a bare TypeError at `enumerate`, and a ring size that is no int
-    one at `range` -- each the builtin `TypeError` the boundary contract of
-    `tests/serialization_boundary_test.py` turns into an `EccTypeError`. The
+    one at `range` -- each the builtin `TypeError` where the contract of
+    `tests/serialization_boundary_test.py` asks for an `EccTypeError`. The
     parameter is `object` because that is what a caller may hand over, whatever
     the signature declares, and `is_integer` is what refuses a `bool`, which
     `range(True)` would otherwise read as the ring size one.
@@ -411,11 +411,9 @@ class BorromeanSig:
         real octets is refused too, either there or by the trailing
         bytes those octets still carry.
 
-        An `rsizes` that is no iterable of ints -- a `bool` ring size
-        among them, which `range` would read as one -- leaves as an
-        `EccTypeError` naming `rsizes` and the ring, not the builtin
-        `TypeError` `enumerate` or `range` would raise underneath the
-        package; `_rsizes_from` is the refusal, `_rings_from` its model.
+        An `rsizes` that is not an iterable of ints, a `bool` ring size
+        included, is refused with an `EccTypeError` naming `rsizes` and
+        the index.
         """
         stream = bytesio_from_binarydata(data)
         e0 = read_exactly(stream, sha256().digest_size, "borromean e0")
